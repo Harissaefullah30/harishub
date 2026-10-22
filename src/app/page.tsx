@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react'
 import { supabase } from '../lib/supabase'
+import { useRouter } from 'next/navigation'
 
 export default function AuthPage() {
+  const router = useRouter()
   const [isLogin, setIsLogin] = useState(true)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -21,7 +23,8 @@ export default function AuthPage() {
       if (error) {
         setMessage(`Error: ${error.message}`)
       } else {
-        setMessage('Login berhasil! Selamat datang di HarisHub.')
+        // Jika berhasil, pindah ke halaman dashboard
+        router.push('/dashboard')
       }
     } else {
       // Proses Daftar (Register)
@@ -29,7 +32,7 @@ export default function AuthPage() {
       if (error) {
         setMessage(`Error: ${error.message}`)
       } else {
-        setMessage('Pendaftaran berhasil! Silakan cek email atau langsung login.')
+        setMessage('Pendaftaran berhasil! Silakan langsung login.')
         setIsLogin(true)
       }
     }
@@ -55,7 +58,7 @@ export default function AuthPage() {
 
         {/* Pesan Sukses / Error */}
         {message && (
-          <div className={`p-3 mb-4 rounded-lg text-sm font-medium text-center ${message.includes('Error') ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-green-100 text-green-800 border border-green-300'}`}>
+          <div className={`p-3 mb-4 rounded-lg text-sm text-center ${message.includes('Error') ? 'bg-red-100 text-red-700 border border-red-300' : 'bg-green-100 text-green-800 border border-green-300'}`}>
             {message}
           </div>
         )}
