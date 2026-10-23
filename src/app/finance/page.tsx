@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Plus, Wallet, TrendingDown, TrendingUp, Trash2, Target, PiggyBank } from 'lucide-react'
+import { ArrowLeft, Plus, Wallet, TrendingDown, TrendingUp, Trash2, Target, PiggyBank, FileText } from 'lucide-react'
 import Link from 'next/link'
 
 type Transaction = {
@@ -27,7 +27,7 @@ export default function FinancePage() {
   const [activeTab, setActiveTab] = useState<'transactions' | 'savings'>('transactions')
   const [loading, setLoading] = useState(true)
 
-  // --- State Transaksi ---
+  // State Transaksi
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isTrxFormOpen, setIsTrxFormOpen] = useState(false)
   const [trxType, setTrxType] = useState<'income' | 'expense'>('expense')
@@ -36,13 +36,12 @@ export default function FinancePage() {
   const [trxDesc, setTrxDesc] = useState('')
   const [trxDate, setTrxDate] = useState(new Date().toISOString().split('T')[0])
 
-  // --- State Tabungan (Goals) ---
+  // State Tabungan (Goals)
   const [goals, setGoals] = useState<SavingsGoal[]>([])
   const [isGoalFormOpen, setIsGoalFormOpen] = useState(false)
   const [goalName, setGoalName] = useState('')
   const [goalTarget, setGoalTarget] = useState('')
   
-  // State untuk menambah saldo tabungan
   const [addFundId, setAddFundId] = useState<string | null>(null)
   const [fundAmount, setFundAmount] = useState('')
 
@@ -51,20 +50,12 @@ export default function FinancePage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return router.push('/')
 
-    // Fetch Transaksi
     const { data: trxData } = await supabase
-      .from('transactions')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('date', { ascending: false })
+      .from('transactions').select('*').eq('user_id', user.id).order('date', { ascending: false })
     if (trxData) setTransactions(trxData)
 
-    // Fetch Goals
     const { data: goalsData } = await supabase
-      .from('savings_goals')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .from('savings_goals').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
     if (goalsData) setGoals(goalsData)
 
     setLoading(false)
@@ -145,13 +136,16 @@ export default function FinancePage() {
       <div className="max-w-5xl mx-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="p-2 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50">
               <ArrowLeft size={20} className="text-[#1E3A5F]" />
             </Link>
             <h1 className="text-2xl font-bold text-[#1E3A5F]">Keuangan Saya</h1>
           </div>
+          <Link href="/finance/report" className="flex items-center justify-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <FileText size={16} /> Lihat Laporan
+          </Link>
         </div>
 
         {/* Kartu Ringkasan */}
@@ -327,7 +321,6 @@ export default function FinancePage() {
                       </div>
                     </div>
 
-                    {/* Progress Bar */}
                     <div className="mb-2 flex justify-between text-xs font-semibold">
                       <span className="text-[#4A90D9]">Terkumpul: Rp {goal.current_amount.toLocaleString('id-ID')}</span>
                       <span className="text-gray-500">{percentage.toFixed(0)}%</span>
@@ -336,7 +329,6 @@ export default function FinancePage() {
                       <div className={`h-3 rounded-full transition-all duration-500 ${isDone ? 'bg-green-500' : 'bg-[#4A90D9]'}`} style={{ width: `${percentage}%` }}></div>
                     </div>
 
-                    {/* Aksi */}
                     <div className="flex justify-between items-center mt-2 pt-4 border-t border-gray-50">
                       {addFundId === goal.id ? (
                         <div className="flex items-center gap-2 w-full">
