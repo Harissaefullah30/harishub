@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '../../../lib/supabase'
-import { ArrowLeft, Plus, Download, BookOpen } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { ArrowLeft, Plus, Download, BookOpen, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 type Material = {
@@ -17,8 +17,6 @@ type Material = {
 
 export default function CourseDetailPage() {
   const params = useParams()
-  
-  // Ambil ID dari URL dengan aman
   const courseId = Array.isArray(params.id) ? params.id[0] : params.id
 
   const [courseName, setCourseName] = useState('')
@@ -26,26 +24,17 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
-  // State Form
   const [title, setTitle] = useState('')
   const [type, setType] = useState('Teori')
   const [content, setContent] = useState('')
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  useEffect(() => {
-    if (courseId) {
-      fetchCourseAndMaterials()
-    }
-  }, [courseId])
-
   const fetchCourseAndMaterials = async () => {
     setLoading(true)
-    // Ambil nama MK
     const { data: courseData } = await supabase.from('courses').select('name').eq('id', courseId).single()
     if (courseData) setCourseName(courseData.name)
 
-    // Ambil materi
     const { data: materialsData } = await supabase
       .from('materials')
       .select('*')
@@ -56,6 +45,11 @@ export default function CourseDetailPage() {
     setLoading(false)
   }
 
+  useEffect(() => {
+    if (courseId) fetchCourseAndMaterials()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [courseId])
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setUploading(true)
@@ -64,14 +58,11 @@ export default function CourseDetailPage() {
 
     let fileUrl = ''
 
-    // Proses Upload File jika ada
     if (file) {
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}-${Date.now()}.${fileExt}`
       
-      const { error: uploadError } = await supabase.storage
-        .from('materials')
-        .upload(fileName, file)
+      const { error: uploadError } = await supabase.storage.from('materials').upload(fileName, file)
 
       if (uploadError) {
         alert('Gagal upload file: ' + uploadError.message)
@@ -79,12 +70,10 @@ export default function CourseDetailPage() {
         return
       }
 
-      // Ambil link publik file
       const { data: { publicUrl } } = supabase.storage.from('materials').getPublicUrl(fileName)
       fileUrl = publicUrl
     }
 
-    // Simpan ke database
     const { error } = await supabase.from('materials').insert({
       course_id: courseId,
       user_id: user.id,
@@ -106,11 +95,20 @@ export default function CourseDetailPage() {
     setUploading(false)
   }
 
+  const handleDeleteMaterial = async (id: string, fileUrl: string) => {
+    if (!window.confirm('Hapus materi ini?')) return
+    if (fileUrl) {
+      const fileName = fileUrl.split('/').pop()
+      if (fileName) await supabase.storage.from('materials').remove([fileName])
+    }
+    await supabase.from('materials').delete().eq('id', id)
+    fetchCourseAndMaterials()
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F7FA] p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-3">
             <Link href="/courses" className="p-2 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50">
@@ -126,7 +124,6 @@ export default function CourseDetailPage() {
           </button>
         </div>
 
-        {/* Form Tambah Materi */}
         {isFormOpen && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 animate-in fade-in">
             <h2 className="font-bold text-gray-800 mb-4">Tambah Materi Baru</h2>
@@ -167,7 +164,6 @@ export default function CourseDetailPage() {
           </div>
         )}
 
-        {/* List Materi */}
         {loading ? (
           <p className="text-center text-gray-500">Memuat materi...</p>
         ) : materials.length === 0 ? (
@@ -187,11 +183,14 @@ export default function CourseDetailPage() {
                     </span>
                     <h3 className="font-bold text-gray-800 text-lg">{mat.title}</h3>
                   </div>
-                  <span className="text-xs text-gray-400">{new Date(mat.created_at).toLocaleDateString('id-ID')}</span>
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-400 hidden md:block">{new Date(mat.created_at).toLocaleDateString('id-ID')}</span>
+                    <button onClick={() => handleDeleteMaterial(mat.id, mat.file_url)} className="text-gray-400 hover:text-red-500 transition-colors p-1 bg-gray-50 hover:bg-red-50 rounded-md">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
-                
                 {mat.content && <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{mat.content}</p>}
-                
                 {mat.file_url && (
                   <a href={mat.file_url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium text-[#1E3A5F] transition-colors">
                     <Download size={16} /> Download Lampiran
@@ -201,7 +200,6 @@ export default function CourseDetailPage() {
             ))}
           </div>
         )}
-
       </div>
     </div>
   )

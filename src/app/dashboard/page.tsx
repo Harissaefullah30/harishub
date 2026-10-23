@@ -2,17 +2,18 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { BookOpen } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, UserCircle, FileText, Settings, LogOut, Menu } from 'lucide-react'
+import { LayoutDashboard, UserCircle, FileText, Settings, LogOut, Menu, Car, BookOpen } from 'lucide-react'
+import Link from 'next/link'
 
 export default function DashboardPage() {
   const router = useRouter()
-  const [currentTime, setCurrentTime] = useState(new Date())
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false) // Untuk menu HP
+  const [currentTime, setCurrentTime] = useState<Date | null>(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   useEffect(() => {
+    setCurrentTime(new Date()) // Set jam setelah komponen dimuat
+
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) router.push('/')
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   }
 
   const getGreeting = () => {
+    if (!currentTime) return 'Halo'
     const hour = currentTime.getHours()
     if (hour < 11) return 'Selamat Pagi'
     if (hour < 15) return 'Selamat Siang'
@@ -36,14 +38,15 @@ export default function DashboardPage() {
     return 'Selamat Malam'
   }
 
-  const formatTime = (date: Date) => {
+  const formatTime = (date: Date | null) => {
+    if (!date) return '--:--:--'
     return date.toLocaleTimeString('id-ID', { hour12: false })
   }
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] flex flex-col md:flex-row">
       
-      {/* HEADER KHUSUS HP (Hanya muncul di layar kecil) */}
+      {/* HEADER KHUSUS HP */}
       <div className="md:hidden bg-[#1E3A5F] text-white p-4 flex justify-between items-center shadow-md z-20">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-white text-[#1E3A5F] rounded-lg flex items-center justify-center font-bold text-sm">
@@ -56,12 +59,11 @@ export default function DashboardPage() {
         </button>
       </div>
 
-      {/* SIDEBAR (Sembunyi di HP, Muncul di Laptop) */}
+      {/* SIDEBAR */}
       <aside className={`
         ${isSidebarOpen ? 'flex' : 'hidden'} 
         md:flex flex-col w-full md:w-64 bg-[#1E3A5F] text-white shadow-xl absolute md:relative z-10 top-16 md:top-0 h-[calc(100vh-64px)] md:h-screen
       `}>
-        {/* Logo (Sembunyi di HP karena sudah ada di header) */}
         <div className="hidden md:flex p-6 items-center gap-3 border-b border-[#2E5A8A]">
           <div className="w-10 h-10 bg-white text-[#1E3A5F] rounded-lg flex items-center justify-center font-bold text-xl">
             HS
@@ -70,14 +72,17 @@ export default function DashboardPage() {
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
-          <a href="#" className="flex items-center gap-3 bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium">
+          <Link href="/dashboard" className="flex items-center gap-3 bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium">
             <LayoutDashboard size={18} /> Dashboard
-          </a>
+          </Link>
           <Link href="/accounts" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
             <UserCircle size={18} /> Akun & Password
           </Link>
           <Link href="/courses" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
             <BookOpen size={18} /> Materi Kuliah
+          </Link>
+          <Link href="/vehicles" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
+            <Car size={18} /> Kendaraan
           </Link>
           <a href="#" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
             <Settings size={18} /> Pengaturan
@@ -93,7 +98,6 @@ export default function DashboardPage() {
 
       {/* KONTEN UTAMA */}
       <main className="flex-1 flex flex-col h-screen overflow-y-auto">
-        {/* Navbar Atas (Sembunyi di HP) */}
         <header className="hidden md:flex bg-white h-16 border-b border-gray-200 items-center justify-between px-8 shrink-0">
           <h2 className="text-xl font-bold text-[#1E3A5F]">Dashboard</h2>
           <div className="flex items-center gap-2">
@@ -104,9 +108,7 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* ISI DASHBOARD */}
         <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
-          
           <div className="mb-6 md:mb-8">
             <h1 className="text-2xl md:text-3xl font-bold text-[#1E3A5F] mb-1">{getGreeting()}, Haris! 👋</h1>
             <p className="text-sm md:text-base text-gray-500">Selamat datang kembali di pusat datamu.</p>
@@ -138,7 +140,7 @@ export default function DashboardPage() {
               <div className="flex justify-between items-center mb-3 md:mb-4">
                 <h3 className="font-bold text-[#1E3A5F] text-xs md:text-sm">📅 Kalender</h3>
                 <span className="text-[10px] font-bold text-[#4A90D9] uppercase tracking-wide">
-                  {currentTime.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}
+                  {currentTime ? currentTime.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' }) : '-'}
                 </span>
               </div>
               
@@ -153,7 +155,7 @@ export default function DashboardPage() {
                   <div 
                     key={date} 
                     className={`py-1 text-[10px] md:text-[11px] font-medium rounded-md transition-all cursor-pointer flex items-center justify-center
-                      ${date === currentTime.getDate() 
+                      ${currentTime && date === currentTime.getDate() 
                         ? 'bg-[#1E3A5F] text-white shadow-sm scale-110' 
                         : 'text-gray-600 hover:bg-gray-100'}`}
                   >

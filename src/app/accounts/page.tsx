@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { ArrowLeft, Plus, Key, Lock, Globe, Eye, EyeOff } from 'lucide-react'
+import { ArrowLeft, Plus, Key, Lock, Globe, Eye, EyeOff, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 // Tipe data untuk Akun
@@ -28,6 +28,8 @@ export default function AccountsPage() {
   const [password, setPassword] = useState('')
   const [category, setCategory] = useState('Sosial')
   const [notes, setNotes] = useState('')
+
+  // State untuk melihat password
   const [visiblePasswords, setVisiblePasswords] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
@@ -77,6 +79,20 @@ export default function AccountsPage() {
       fetchAccounts() // Refresh data
     } else {
       alert('Gagal menyimpan: ' + error.message)
+    }
+  }
+
+  // Fungsi untuk menghapus akun
+  const handleDelete = async (id: string) => {
+    const confirmDelete = window.confirm('Yakin ingin menghapus akun ini? Data akan hilang permanen.')
+    if (!confirmDelete) return
+
+    const { error } = await supabase.from('accounts').delete().eq('id', id)
+    
+    if (!error) {
+      fetchAccounts() // Refresh daftar akun setelah dihapus
+    } else {
+      alert('Gagal menghapus: ' + error.message)
     }
   }
 
@@ -198,18 +214,28 @@ export default function AccountsPage() {
                         {acc.app_name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <h3 className="font-bold text-gray-800 leading-tight">{acc.app_name}</h3>
+                        <div className="flex justify-between items-start w-full">
+                          <h3 className="font-bold text-gray-800 leading-tight">{acc.app_name}</h3>
+                          <button 
+                            onClick={() => handleDelete(acc.id)} 
+                            className="text-gray-400 hover:text-red-500 transition-colors p-1 ml-2"
+                            title="Hapus Akun"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                         <span className="text-[10px] font-semibold text-[#4A90D9] uppercase tracking-wide bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block">
                           {acc.category}
                         </span>
                       </div>
                     </div>
                   </div>
+                  
                   <div className="space-y-2 mt-4">
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Globe size={14} className="text-gray-400" /> {acc.email_username}
                     </div>
-                                        <div className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 p-2 rounded-lg mt-2">
+                    <div className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 p-2 rounded-lg mt-2">
                       <div className="flex items-center gap-2">
                         <Key size={14} className="text-gray-400" /> 
                         <span className="font-mono">
@@ -226,6 +252,7 @@ export default function AccountsPage() {
                     </div>
                   </div>
                 </div>
+                
                 {acc.notes && (
                   <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 italic">
                     "{acc.notes}"

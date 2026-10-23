@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
-import { ArrowLeft, Plus, BookOpen, User } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { ArrowLeft, Plus, BookOpen, Trash2, User } from 'lucide-react'
 import Link from 'next/link'
 
 type Course = {
@@ -24,10 +24,6 @@ export default function CoursesPage() {
   const [lecturer, setLecturer] = useState('')
   const [semester, setSemester] = useState('1')
 
-  useEffect(() => {
-    fetchCourses()
-  }, [])
-
   const fetchCourses = async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -42,6 +38,10 @@ export default function CoursesPage() {
     if (data) setCourses(data)
     setLoading(false)
   }
+
+  useEffect(() => {
+    fetchCourses()
+  }, [router])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -66,6 +66,12 @@ export default function CoursesPage() {
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Yakin ingin menghapus Mata Kuliah ini? Semua materi di dalamnya juga akan terhapus.')) return
+    await supabase.from('courses').delete().eq('id', id)
+    fetchCourses()
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F7FA] p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
@@ -78,14 +84,14 @@ export default function CoursesPage() {
             </Link>
             <h1 className="text-2xl font-bold text-[#1E3A5F]">Materi Kuliah</h1>
           </div>
-          <button onClick={() => setIsFormOpen(!isFormOpen)} className="flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <button onClick={() => setIsFormOpen(!isFormOpen)} className="flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <Plus size={16} /> Tambah MK
           </button>
         </div>
 
         {/* Form Tambah MK */}
         {isFormOpen && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 animate-in fade-in slide-in-from-top-4">
             <h2 className="font-bold text-gray-800 mb-4">Tambah Mata Kuliah</h2>
             <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -120,16 +126,23 @@ export default function CoursesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {courses.map(mk => (
-              <Link href={`/courses/${mk.id}`} key={mk.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all block group">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="w-12 h-12 bg-blue-50 text-[#1E3A5F] rounded-xl flex items-center justify-center font-bold text-xl group-hover:bg-[#1E3A5F] group-hover:text-white transition-colors">
-                    {mk.name.charAt(0).toUpperCase()}
+              <div key={mk.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group overflow-hidden flex flex-col justify-between">
+                <Link href={`/courses/${mk.id}`} className="p-5 flex-1 block">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="w-12 h-12 bg-blue-50 text-[#1E3A5F] rounded-xl flex items-center justify-center font-bold text-xl group-hover:bg-[#1E3A5F] group-hover:text-white transition-colors">
+                      {mk.name.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md">Sem {mk.semester}</span>
                   </div>
-                  <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md">Sem {mk.semester}</span>
+                  <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight group-hover:text-[#4A90D9] transition-colors">{mk.name}</h3>
+                  <p className="text-sm text-gray-500 flex items-center gap-1.5"><User size={14} /> {mk.lecturer || 'Dosen belum diisi'}</p>
+                </Link>
+                <div className="px-5 py-3 border-t border-gray-50 flex justify-end bg-gray-50/50">
+                  <button onClick={() => handleDelete(mk.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus Mata Kuliah">
+                    <Trash2 size={18} />
+                  </button>
                 </div>
-                <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight">{mk.name}</h3>
-                <p className="text-sm text-gray-500 flex items-center gap-1.5"><User size={14} /> {mk.lecturer || 'Dosen belum diisi'}</p>
-              </Link>
+              </div>
             ))}
           </div>
         )}
