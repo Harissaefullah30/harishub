@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, UserCircle, BookOpen, Car, ShoppingBag, Settings, LogOut, Menu, Wallet, BellRing, Sparkles } from 'lucide-react'
+import { LayoutDashboard, UserCircle, BookOpen, Car, ShoppingBag, Settings, LogOut, Menu, Wallet, BellRing, Sparkles, Receipt, Link as LinkIcon } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -112,6 +112,12 @@ export default function DashboardPage() {
           <Link href="/haris-space" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors text-yellow-300 hover:text-white">
   <Sparkles size={18} /> Haris Space ✨
 </Link>
+          <Link href="/receipts" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
+            <Receipt size={18} /> Kwitansi & Bukti
+          </Link>
+                    <Link href="/links" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
+            <LinkIcon size={18} /> Link Penting
+          </Link>
           <a href="#" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
             <Settings size={18} /> Pengaturan
           </a>
