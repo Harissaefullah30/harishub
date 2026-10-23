@@ -1,6 +1,6 @@
 'use client'
 
-import { ArrowLeft, Sparkles, Lock, Gamepad2, Star, StickyNote } from 'lucide-react'
+import { ArrowLeft, Sparkles, Lock, Search, Gamepad2, Star, StickyNote } from 'lucide-react'
 import Link from 'next/link'
 
 export default function HarisSpacePage() {
@@ -14,7 +14,6 @@ export default function HarisSpacePage() {
 
         {/* HEADER PERSONAL HARIS SPACE */}
         <div className="bg-gradient-to-r from-[#1E3A5F] to-[#3A5F8A] rounded-3xl p-8 md:p-12 text-white mb-8 shadow-xl relative overflow-hidden">
-          {/* Ornamen Background */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-bl-full"></div>
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-yellow-400 opacity-10 rounded-tr-full blur-2xl"></div>
           
@@ -27,62 +26,39 @@ export default function HarisSpacePage() {
                 Haris Space <Sparkles className="text-yellow-300" size={28} />
               </h1>
               <p className="text-blue-100 text-lg">Ruang rahasia & markas pribadi Haris Rizki Saefullah.</p>
-              <div className="mt-3 inline-flex items-center gap-2 bg-black/20 px-3 py-1 rounded-full text-xs font-medium text-blue-100 border border-white/10">
-                <Lock size={12} /> Hanya bisa diakses olehmu
-              </div>
             </div>
           </div>
         </div>
 
-        {/* AREA MINI-APPS (Bento Grid) */}
+        {/* AREA MINI-APPS */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-[#1E3A5F]">Area Bermain & Koleksi</h2>
-          <span className="text-sm text-gray-500 font-medium bg-white px-3 py-1 rounded-full border border-gray-200">Segera Hadir</span>
+          <h2 className="text-xl font-bold text-[#1E3A5F]">Aplikasi Pribadi</h2>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           
-          {/* Kotak 1: Daftar Keinginan */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center text-center h-48 relative overflow-hidden group hover:shadow-md transition-all cursor-not-allowed opacity-80">
-            <div className="w-14 h-14 bg-pink-50 text-pink-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <Star size={28} />
+          {/* KOTAK 1: PENCARIAN CEPAT (SUDAH AKTIF) */}
+          <Link href="/haris-space/search" className="bg-white rounded-2xl shadow-sm border border-[#4A90D9] p-6 flex flex-col items-center justify-center text-center h-48 relative overflow-hidden group hover:shadow-lg transition-all cursor-pointer">
+            <div className="w-14 h-14 bg-blue-50 text-[#1E3A5F] rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Search size={28} />
             </div>
+            <h3 className="font-bold text-gray-800 text-lg">Pencarian Cepat</h3>
+            <p className="text-xs text-gray-500 mt-1">Cari seluruh data di HarisHub</p>
+            <div className="absolute top-2 right-2 bg-blue-100 text-[#1E3A5F] text-[10px] font-bold px-2 py-1 rounded-md">Aktif</div>
+          </Link>
+
+          {/* Kotak 2: Daftar Keinginan (Segera) */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center text-center h-48 relative overflow-hidden group hover:shadow-md transition-all cursor-not-allowed opacity-70">
+            <div className="w-14 h-14 bg-pink-50 text-pink-500 rounded-full flex items-center justify-center mb-3"><Star size={28} /></div>
             <h3 className="font-bold text-gray-800">Daftar Keinginan</h3>
             <p className="text-xs text-gray-500 mt-1">Wishlist barang impian</p>
-            <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-               <span className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg">Segera Dibuat</span>
-            </div>
           </div>
 
-          {/* Kotak 2: Papan Coret-Coret */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center text-center h-48 relative overflow-hidden group hover:shadow-md transition-all cursor-not-allowed opacity-80">
-            <div className="w-14 h-14 bg-yellow-50 text-yellow-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <StickyNote size={28} />
-            </div>
-            <h3 className="font-bold text-gray-800">Papan Coret-Coret</h3>
-            <p className="text-xs text-gray-500 mt-1">Catatan ide liar & cepat</p>
-            <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-               <span className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg">Segera Dibuat</span>
-            </div>
-          </div>
-
-          {/* Kotak 3: Game Sederhana */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center text-center h-48 relative overflow-hidden group hover:shadow-md transition-all cursor-not-allowed opacity-80">
-            <div className="w-14 h-14 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <Gamepad2 size={28} />
-            </div>
+          {/* Kotak 3: Game Sederhana (Segera) */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col items-center justify-center text-center h-48 relative overflow-hidden group hover:shadow-md transition-all cursor-not-allowed opacity-70">
+            <div className="w-14 h-14 bg-purple-50 text-purple-500 rounded-full flex items-center justify-center mb-3"><Gamepad2 size={28} /></div>
             <h3 className="font-bold text-gray-800">Game Sederhana</h3>
             <p className="text-xs text-gray-500 mt-1">Isi waktu luang</p>
-            <div className="absolute inset-0 bg-white/50 backdrop-blur-[1px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-               <span className="bg-gray-800 text-white text-xs px-3 py-1.5 rounded-lg font-medium shadow-lg">Segera Dibuat</span>
-            </div>
-          </div>
-
-          {/* Kotak Kosong (Untuk ide masa depan) */}
-          <div className="bg-transparent border-2 border-dashed border-gray-300 rounded-2xl p-6 flex flex-col items-center justify-center text-center h-48 text-gray-400">
-            <Sparkles size={28} className="mb-2 opacity-50" />
-            <p className="text-sm font-medium">Slot Kosong</p>
-            <p className="text-xs mt-1">Siap diisi ide barumu nanti</p>
           </div>
 
         </div>
