@@ -28,6 +28,11 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   
+  // State Profil
+  const [userName, setUserName] = useState('Haris')
+  const [userBio, setUserBio] = useState('Digital Builder & Creator')
+  const [initial, setInitial] = useState('HS')
+
   // State Jurnal
   const [hasJournalToday, setHasJournalToday] = useState(true)
   const [checkingJournal, setCheckingJournal] = useState(true)
@@ -41,6 +46,23 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return router.push('/')
 
+      // Ambil data nama & bio dari user_metadata (yang diatur di halaman Pengaturan)
+      const meta = session.user.user_metadata
+      if (meta) {
+        const name = meta.full_name || 'Haris Rizki Saefullah'
+        setUserName(name)
+        setUserBio(meta.bio || 'Digital Builder & Creator')
+        
+        // Buat inisial otomatis (2 huruf pertama)
+        const nameParts = name.split(' ')
+        if (nameParts.length > 1) {
+          setInitial((nameParts[0][0] + nameParts[1][0]).toUpperCase())
+        } else {
+          setInitial(name.substring(0, 2).toUpperCase())
+        }
+      }
+
+      // Cek Jurnal
       const today = new Date().toISOString().split('T')[0]
       const { data } = await supabase
         .from('daily_journals')
@@ -78,7 +100,7 @@ export default function DashboardPage() {
     return date.toLocaleTimeString('id-ID', { hour12: false })
   }
 
-  // Daftar Menu (Dijadikan Array agar mudah difilter)
+  // Daftar Menu
   const menuItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Jurnal Harian', path: '/journal', icon: BookOpen },
@@ -92,10 +114,9 @@ export default function DashboardPage() {
     { name: 'Kwitansi & Bukti', path: '/receipts', icon: Receipt },
     { name: 'Link Penting', path: '/links', icon: LinkIcon },
     { name: 'Galeri Foto & Video', path: '/gallery', icon: ImageIcon },
-    { name: 'Pengaturan', path: '#', icon: Settings },
+    { name: 'Pengaturan', path: '/settings', icon: Settings },
   ]
 
-  // Filter menu berdasarkan pencarian
   const filteredMenu = menuItems.filter(item => 
     item.name.toLowerCase().includes(searchMenu.toLowerCase())
   )
@@ -107,7 +128,7 @@ export default function DashboardPage() {
       <div className="md:hidden bg-[#1E3A5F] text-white p-4 flex justify-between items-center shadow-md z-20">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-white text-[#1E3A5F] rounded-lg flex items-center justify-center font-bold text-sm">
-            HS
+            {initial}
           </div>
           <span className="font-bold">HarisHub</span>
         </div>
@@ -123,7 +144,7 @@ export default function DashboardPage() {
       `}>
         <div className="hidden md:flex p-6 items-center gap-3 border-b border-[#2E5A8A] shrink-0">
           <div className="w-10 h-10 bg-white text-[#1E3A5F] rounded-lg flex items-center justify-center font-bold text-xl">
-            HS
+            {initial}
           </div>
           <span className="font-bold text-lg tracking-wide">HarisHub</span>
         </div>
@@ -181,9 +202,9 @@ export default function DashboardPage() {
         <header className="hidden md:flex bg-white h-16 border-b border-gray-200 items-center justify-between px-8 shrink-0">
           <h2 className="text-xl font-bold text-[#1E3A5F]">Dashboard</h2>
           <div className="flex items-center gap-2">
-            <span className="text-sm font-medium text-gray-600">Halo, Haris!</span>
+            <span className="text-sm font-medium text-gray-600">Halo, {userName.split(' ')[0]}!</span>
             <div className="w-8 h-8 bg-[#1E3A5F] rounded-full flex items-center justify-center text-white text-xs font-bold shadow-md">
-              HS
+              {initial}
             </div>
           </div>
         </header>
@@ -211,7 +232,7 @@ export default function DashboardPage() {
           )}
 
           <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-3xl font-bold text-[#1E3A5F] mb-1">{getGreeting()}, Haris! 👋</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#1E3A5F] mb-1">{getGreeting()}, {userName.split(' ')[0]}! 👋</h1>
             <p className="text-sm md:text-base text-gray-500">Selamat datang kembali di pusat datamu.</p>
           </div>
 
@@ -229,10 +250,10 @@ export default function DashboardPage() {
             <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col items-center text-center h-40 md:h-48 justify-center relative overflow-hidden">
               <div className="absolute top-0 w-full h-1 bg-[#4A90D9]"></div>
               <div className="w-14 h-14 md:w-16 md:h-16 bg-[#F5F7FA] rounded-full flex items-center justify-center text-[#1E3A5F] text-xl md:text-2xl font-bold mb-2 md:mb-3 border-2 border-[#1E3A5F]">
-                HS
+                {initial}
               </div>
-              <h3 className="font-bold text-gray-800 text-sm md:text-lg leading-tight">Haris Rizki Saefullah</h3>
-              <p className="text-[10px] md:text-xs text-[#4A90D9] font-medium mt-1 mb-2">Digital Builder & Creator</p>
+              <h3 className="font-bold text-gray-800 text-sm md:text-lg leading-tight">{userName}</h3>
+              <p className="text-[10px] md:text-xs text-[#4A90D9] font-medium mt-1 mb-2">{userBio}</p>
             </div>
 
             {/* Kotak 3: Kalender Mini */}
