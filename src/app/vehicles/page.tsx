@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
-import { ArrowLeft, Plus, Car, Image as ImageIcon } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { ArrowLeft, Plus, Car, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 type Vehicle = {
@@ -27,10 +27,6 @@ export default function VehiclesPage() {
   const [file, setFile] = useState<File | null>(null)
   const [uploading, setUploading] = useState(false)
 
-  useEffect(() => {
-    fetchVehicles()
-  }, [])
-
   const fetchVehicles = async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -45,6 +41,10 @@ export default function VehiclesPage() {
     if (data) setVehicles(data)
     setLoading(false)
   }
+
+  useEffect(() => {
+    fetchVehicles()
+  }, [router])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,6 +92,12 @@ export default function VehiclesPage() {
       alert('Gagal: ' + error.message)
     }
     setUploading(false)
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Hapus kendaraan ini beserta riwayat servisnya?')) return
+    await supabase.from('vehicles').delete().eq('id', id)
+    fetchVehicles()
   }
 
   return (
@@ -159,29 +165,31 @@ export default function VehiclesPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {vehicles.map(v => (
-              <Link href={`/vehicles/${v.id}`} key={v.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all block group overflow-hidden">
-                
-                {/* Bagian Atas: Foto atau Ikon */}
-                <div className="h-40 w-full bg-gray-100 relative">
-                  {v.image_url ? (
-                    <img src={v.image_url} alt={v.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-blue-50 text-[#1E3A5F] group-hover:bg-[#1E3A5F] group-hover:text-white transition-colors">
-                      <Car size={48} />
-                    </div>
-                  )}
-                </div>
-
-                {/* Bagian Bawah: Info */}
-                <div className="p-5">
-                  <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight">{v.name}</h3>
-                  <div className="inline-block bg-gray-100 text-gray-700 font-mono text-sm px-2 py-1 rounded-md font-bold tracking-widest mt-1 border border-gray-200">
-                    {v.plate_number}
+              <div key={v.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all overflow-hidden flex flex-col justify-between">
+                <Link href={`/vehicles/${v.id}`} className="block group">
+                  <div className="h-40 w-full bg-gray-100 relative">
+                    {v.image_url ? (
+                      <img src={v.image_url} alt={v.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center bg-blue-50 text-[#1E3A5F] group-hover:bg-[#1E3A5F] group-hover:text-white transition-colors">
+                        <Car size={48} />
+                      </div>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-500 mt-2">{v.brand || 'Merek tidak diisi'}</p>
+                  <div className="p-5">
+                    <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight group-hover:text-[#4A90D9] transition-colors">{v.name}</h3>
+                    <div className="inline-block bg-gray-100 text-gray-700 font-mono text-sm px-2 py-1 rounded-md font-bold tracking-widest mt-1 border border-gray-200">
+                      {v.plate_number}
+                    </div>
+                    <p className="text-sm text-gray-500 mt-2">{v.brand || 'Merek tidak diisi'}</p>
+                  </div>
+                </Link>
+                <div className="px-5 py-3 border-t border-gray-50 flex justify-end bg-gray-50/50">
+                  <button onClick={() => handleDelete(v.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus Kendaraan">
+                    <Trash2 size={18} />
+                  </button>
                 </div>
-
-              </Link>
+              </div>
             ))}
           </div>
         )}

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
-import { supabase } from '../../../lib/supabase'
-import { ArrowLeft, Plus, Wrench, Calendar, Gauge, Banknote } from 'lucide-react'
+import { supabase } from '@/lib/supabase'
+import { ArrowLeft, Plus, Wrench, Calendar, Gauge, Banknote, Trash2 } from 'lucide-react'
 import Link from 'next/link'
 
 type Maintenance = {
@@ -32,20 +32,14 @@ export default function VehicleDetailPage() {
   const [cost, setCost] = useState('')
   const [notes, setNotes] = useState('')
 
-  useEffect(() => {
-    if (vehicleId) fetchVehicleAndLogs()
-  }, [vehicleId])
-
   const fetchVehicleAndLogs = async () => {
     setLoading(true)
-    // Ambil nama & plat kendaraan
     const { data: vehicleData } = await supabase.from('vehicles').select('name, plate_number').eq('id', vehicleId).single()
     if (vehicleData) {
       setVehicleName(vehicleData.name)
       setVehiclePlate(vehicleData.plate_number)
     }
 
-    // Ambil riwayat servis
     const { data: logsData } = await supabase
       .from('maintenance_logs')
       .select('*')
@@ -55,6 +49,11 @@ export default function VehicleDetailPage() {
     if (logsData) setLogs(logsData)
     setLoading(false)
   }
+
+  useEffect(() => {
+    if (vehicleId) fetchVehicleAndLogs()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleId])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,11 +82,16 @@ export default function VehicleDetailPage() {
     }
   }
 
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Hapus riwayat servis ini?')) return
+    await supabase.from('maintenance_logs').delete().eq('id', id)
+    fetchVehicleAndLogs()
+  }
+
   return (
     <div className="min-h-screen bg-[#F5F7FA] p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-3">
             <Link href="/vehicles" className="p-2 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50">
@@ -103,7 +107,6 @@ export default function VehicleDetailPage() {
           </button>
         </div>
 
-        {/* Form Tambah Servis */}
         {isFormOpen && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 animate-in fade-in">
             <h2 className="font-bold text-gray-800 mb-4">Catat Riwayat Perawatan</h2>
@@ -140,7 +143,6 @@ export default function VehicleDetailPage() {
           </div>
         )}
 
-        {/* List Riwayat */}
         {loading ? (
           <p className="text-center text-gray-500">Memuat riwayat...</p>
         ) : logs.length === 0 ? (
@@ -158,9 +160,14 @@ export default function VehicleDetailPage() {
                   <h3 className="font-bold text-gray-800 text-lg flex items-center gap-2">
                     <Wrench size={18} className="text-[#4A90D9]" /> {log.title}
                   </h3>
-                  <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md flex items-center gap-1">
-                    <Calendar size={12} /> {new Date(log.date).toLocaleDateString('id-ID')}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md flex items-center gap-1">
+                      <Calendar size={12} /> {new Date(log.date).toLocaleDateString('id-ID')}
+                    </span>
+                    <button onClick={() => handleDelete(log.id)} className="text-gray-400 hover:text-red-500 p-1 bg-gray-50 hover:bg-red-50 rounded-md transition-colors">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </div>
                 
                 <div className="flex flex-wrap gap-4 mt-2">
