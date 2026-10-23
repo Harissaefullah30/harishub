@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, UserCircle, BookOpen, Car, ShoppingBag, Settings, LogOut, Menu, Wallet, BellRing, Sparkles, Receipt, Link as LinkIcon } from 'lucide-react'
+import { LayoutDashboard, UserCircle, BookOpen, Car, ShoppingBag, Settings, LogOut, Menu, Wallet, BellRing, Image as ImageIcon, Link as LinkIcon, Receipt, Sparkles, Search } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -11,9 +11,12 @@ export default function DashboardPage() {
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   
-  // State untuk Jurnal
-  const [hasJournalToday, setHasJournalToday] = useState(true) // Default true agar tidak flicker
+  // State Jurnal
+  const [hasJournalToday, setHasJournalToday] = useState(true)
   const [checkingJournal, setCheckingJournal] = useState(true)
+
+  // State Pencarian Menu
+  const [searchMenu, setSearchMenu] = useState('')
 
   useEffect(() => {
     setCurrentTime(new Date())
@@ -21,7 +24,6 @@ export default function DashboardPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) return router.push('/')
 
-      // Cek jurnal hari ini
       const today = new Date().toISOString().split('T')[0]
       const { data } = await supabase
         .from('daily_journals')
@@ -30,7 +32,7 @@ export default function DashboardPage() {
         .eq('journal_date', today)
         .single()
 
-      setHasJournalToday(!!data) // Jika ada data, true. Jika kosong, false.
+      setHasJournalToday(!!data)
       setCheckingJournal(false)
     }
     
@@ -59,6 +61,27 @@ export default function DashboardPage() {
     return date.toLocaleTimeString('id-ID', { hour12: false })
   }
 
+  // Daftar Menu (Dijadikan Array agar mudah difilter)
+  const menuItems = [
+    { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
+    { name: 'Jurnal Harian', path: '/journal', icon: BookOpen },
+    { name: 'Keuangan', path: '/finance', icon: Wallet },
+    { name: 'Haris Space', path: '/haris-space', icon: Sparkles, special: true },
+    { name: 'Akun & Password', path: '/accounts', icon: UserCircle },
+    { name: 'Materi Kuliah', path: '/courses', icon: BookOpen },
+    { name: 'Kendaraan', path: '/vehicles', icon: Car },
+    { name: 'Riwayat Belanja', path: '/shopping', icon: ShoppingBag },
+    { name: 'Kwitansi & Bukti', path: '/receipts', icon: Receipt },
+    { name: 'Link Penting', path: '/links', icon: LinkIcon },
+    { name: 'Galeri Foto & Video', path: '/gallery', icon: ImageIcon },
+    { name: 'Pengaturan', path: '#', icon: Settings },
+  ]
+
+  // Filter menu berdasarkan pencarian
+  const filteredMenu = menuItems.filter(item => 
+    item.name.toLowerCase().includes(searchMenu.toLowerCase())
+  )
+
   return (
     <div className="min-h-screen bg-[#F5F7FA] flex flex-col md:flex-row">
       
@@ -78,52 +101,57 @@ export default function DashboardPage() {
       {/* SIDEBAR */}
       <aside className={`
         ${isSidebarOpen ? 'flex' : 'hidden'} 
-        md:flex flex-col w-full md:w-64 bg-[#1E3A5F] text-white shadow-xl absolute md:relative z-10 top-16 md:top-0 h-[calc(100vh-64px)] md:h-screen overflow-y-auto
+        md:flex flex-col w-full md:w-64 bg-[#1E3A5F] text-white shadow-xl absolute md:relative z-10 top-16 md:top-0 h-[calc(100vh-64px)] md:h-screen
       `}>
-        <div className="hidden md:flex p-6 items-center gap-3 border-b border-[#2E5A8A]">
+        <div className="hidden md:flex p-6 items-center gap-3 border-b border-[#2E5A8A] shrink-0">
           <div className="w-10 h-10 bg-white text-[#1E3A5F] rounded-lg flex items-center justify-center font-bold text-xl">
             HS
           </div>
           <span className="font-bold text-lg tracking-wide">HarisHub</span>
         </div>
 
-        <nav className="flex-1 p-4 space-y-2">
-          <Link href="/dashboard" className="flex items-center gap-3 bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium">
-            <LayoutDashboard size={18} /> Dashboard
-          </Link>
-          <Link href="/journal" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <BookOpen size={18} /> Jurnal Harian
-          </Link>
-          <Link href="/finance" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <Wallet size={18} /> Keuangan
-          </Link>
-          <Link href="/accounts" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <UserCircle size={18} /> Akun & Password
-          </Link>
-          <Link href="/courses" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <BookOpen size={18} /> Materi Kuliah
-          </Link>
-          <Link href="/vehicles" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <Car size={18} /> Kendaraan
-          </Link>
-          <Link href="/shopping" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <ShoppingBag size={18} /> Riwayat Belanja
-          </Link>
-          <Link href="/haris-space" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors text-yellow-300 hover:text-white">
-  <Sparkles size={18} /> Haris Space ✨
-</Link>
-          <Link href="/receipts" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <Receipt size={18} /> Kwitansi & Bukti
-          </Link>
-                    <Link href="/links" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <LinkIcon size={18} /> Link Penting
-          </Link>
-          <a href="#" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <Settings size={18} /> Pengaturan
-          </a>
+        {/* KOLOM PENCARIAN MENU */}
+        <div className="px-4 pt-4 pb-2 shrink-0">
+          <div className="relative">
+            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input 
+              type="text" 
+              placeholder="Cari fitur..." 
+              value={searchMenu}
+              onChange={e => setSearchMenu(e.target.value)}
+              className="w-full bg-[#2E5A8A] text-white text-sm rounded-lg pl-9 pr-3 py-2 outline-none placeholder-gray-400 focus:ring-1 focus:ring-[#4A90D9] transition-all"
+            />
+          </div>
+        </div>
+
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+          {filteredMenu.length > 0 ? (
+            filteredMenu.map((item) => {
+              const Icon = item.icon
+              const isActive = item.path === '/dashboard'
+              
+              return (
+                <Link 
+                  key={item.name}
+                  href={item.path} 
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                    isActive 
+                      ? 'bg-[#2E5A8A]' 
+                      : item.special 
+                        ? 'text-yellow-300 hover:bg-[#2E5A8A] hover:text-white' 
+                        : 'hover:bg-[#2E5A8A]'
+                  }`}
+                >
+                  <Icon size={18} /> {item.name} {item.special && '✨'}
+                </Link>
+              )
+            })
+          ) : (
+            <p className="text-center text-gray-400 text-sm py-4">Fitur tidak ditemukan.</p>
+          )}
         </nav>
 
-        <div className="p-4 border-t border-[#2E5A8A]">
+        <div className="p-4 border-t border-[#2E5A8A] shrink-0">
           <button onClick={handleLogout} className="flex items-center gap-3 w-full hover:bg-red-500 px-4 py-3 rounded-lg text-sm font-medium transition-colors text-red-100 hover:text-white">
             <LogOut size={18} /> Keluar
           </button>
