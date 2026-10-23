@@ -3,7 +3,24 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { LayoutDashboard, UserCircle, BookOpen, Car, ShoppingBag, Settings, LogOut, Menu, Wallet, BellRing, Image as ImageIcon, Link as LinkIcon, Receipt, Sparkles, Search } from 'lucide-react'
+import { 
+  LayoutDashboard, 
+  UserCircle, 
+  BookOpen, 
+  Car, 
+  ShoppingBag, 
+  Settings, 
+  LogOut, 
+  Menu, 
+  Wallet, 
+  BellRing, 
+  Image as ImageIcon, 
+  Link as LinkIcon, 
+  Receipt, 
+  Sparkles, 
+  Search,
+  HeartPulse 
+} from 'lucide-react'
 import Link from 'next/link'
 
 export default function DashboardPage() {
@@ -66,6 +83,7 @@ export default function DashboardPage() {
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Jurnal Harian', path: '/journal', icon: BookOpen },
     { name: 'Keuangan', path: '/finance', icon: Wallet },
+    { name: 'Kesehatan & Fisik', path: '/health', icon: HeartPulse },
     { name: 'Haris Space', path: '/haris-space', icon: Sparkles, special: true },
     { name: 'Akun & Password', path: '/accounts', icon: UserCircle },
     { name: 'Materi Kuliah', path: '/courses', icon: BookOpen },
