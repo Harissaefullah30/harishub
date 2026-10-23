@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { BookOpen } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { LayoutDashboard, UserCircle, FileText, Settings, LogOut, Menu } from 'lucide-react'
 
@@ -75,9 +76,9 @@ export default function DashboardPage() {
           <Link href="/accounts" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
             <UserCircle size={18} /> Akun & Password
           </Link>
-          <a href="#" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
-            <FileText size={18} /> Catatan
-          </a>
+          <Link href="/courses" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
+            <BookOpen size={18} /> Materi Kuliah
+          </Link>
           <a href="#" className="flex items-center gap-3 hover:bg-[#2E5A8A] px-4 py-3 rounded-lg text-sm font-medium transition-colors">
             <Settings size={18} /> Pengaturan
           </a>

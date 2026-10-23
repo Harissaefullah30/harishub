@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '../../lib/supabase'
-import { ArrowLeft, Plus, Key, Lock, Globe } from 'lucide-react'
+import { ArrowLeft, Plus, Key, Lock, Globe, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 
 // Tipe data untuk Akun
@@ -28,6 +28,7 @@ export default function AccountsPage() {
   const [password, setPassword] = useState('')
   const [category, setCategory] = useState('Sosial')
   const [notes, setNotes] = useState('')
+  const [visiblePasswords, setVisiblePasswords] = useState<{ [key: string]: boolean }>({})
 
   useEffect(() => {
     fetchAccounts()
@@ -208,8 +209,20 @@ export default function AccountsPage() {
                     <div className="flex items-center gap-2 text-sm text-gray-600">
                       <Globe size={14} className="text-gray-400" /> {acc.email_username}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                      <Key size={14} className="text-gray-400" /> ••••••••
+                                        <div className="flex items-center justify-between text-sm text-gray-600 bg-gray-50 p-2 rounded-lg mt-2">
+                      <div className="flex items-center gap-2">
+                        <Key size={14} className="text-gray-400" /> 
+                        <span className="font-mono">
+                          {visiblePasswords[acc.id] ? acc.password : '••••••••'}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => setVisiblePasswords(prev => ({ ...prev, [acc.id]: !prev[acc.id] }))}
+                        className="text-gray-400 hover:text-[#1E3A5F] transition-colors"
+                        title="Lihat Password"
+                      >
+                        {visiblePasswords[acc.id] ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
                     </div>
                   </div>
                 </div>
