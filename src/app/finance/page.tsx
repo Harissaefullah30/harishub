@@ -34,7 +34,7 @@ export default function FinancePage() {
   const [trxAmount, setTrxAmount] = useState('')
   const [trxCategory, setTrxCategory] = useState('Makanan')
   const [trxDesc, setTrxDesc] = useState('')
-  const [trxDate, setTrxDate] = useState(new Date().toISOString().split('T')[0])
+  const [trxDate, setTrxDate] = useState('')
 
   // State Tabungan (Goals)
   const [goals, setGoals] = useState<SavingsGoal[]>([])
@@ -62,6 +62,7 @@ export default function FinancePage() {
   }
 
   useEffect(() => {
+    setTrxDate(new Date().toISOString().split('T')[0])
     fetchData()
   }, [router])
 
