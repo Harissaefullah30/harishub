@@ -135,7 +135,7 @@ function SemesterContent() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredCourses.map(mk => (
-              <Link href={`/courses/${semesterId}/${mk.id}`} key={mk.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-[#4A90D9] transition-all block group">
+              <Link href={`/courses/${mk.id}`} key={mk.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-[#4A90D9] transition-all block group">
                 <div className="flex items-start justify-between mb-3">
                   <div className="w-12 h-12 bg-blue-50 text-[#1E3A5F] rounded-xl flex items-center justify-center font-bold text-xl group-hover:bg-[#1E3A5F] group-hover:text-white transition-colors">
                     {mk.name.charAt(0).toUpperCase()}
