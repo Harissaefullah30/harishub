@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Plus, Wrench, Calendar, Gauge, Banknote, Trash2 } from 'lucide-react'
@@ -15,7 +15,8 @@ type Maintenance = {
   notes: string
 }
 
-export default function VehicleDetailPage() {
+// 1. Komponen isi dipisahkan
+function VehicleDetailContent() {
   const params = useParams()
   const vehicleId = Array.isArray(params.id) ? params.id[0] : params.id
 
@@ -25,9 +26,9 @@ export default function VehicleDetailPage() {
   const [loading, setLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
-  // State Form
+  // State Form (new Date sudah dipindah ke useEffect di bawah)
   const [title, setTitle] = useState('')
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0])
+  const [date, setDate] = useState('')
   const [km, setKm] = useState('')
   const [cost, setCost] = useState('')
   const [notes, setNotes] = useState('')
@@ -51,6 +52,9 @@ export default function VehicleDetailPage() {
   }
 
   useEffect(() => {
+    // Set tanggal hari ini setelah komponen dimuat
+    setDate(new Date().toISOString().split('T')[0])
+    
     if (vehicleId) fetchVehicleAndLogs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicleId])
@@ -195,5 +199,14 @@ export default function VehicleDetailPage() {
 
       </div>
     </div>
+  )
+}
+
+// 2. Ini adalah fungsi utama yang membungkus semuanya dengan Suspense
+export default function VehicleDetailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F5F7FA] p-8 text-center text-gray-500">Memuat detail kendaraan...</div>}>
+      <VehicleDetailContent />
+    </Suspense>
   )
 }
