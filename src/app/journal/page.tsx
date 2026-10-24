@@ -13,8 +13,7 @@ export default function JournalPage() {
   const [journalId, setJournalId] = useState<string | null>(null)
 
   // State Form
-  const today = new Date().toISOString().split('T')[0]
-  const [date, setDate] = useState(today)
+  const [date, setDate] = useState('') // Dimulai dengan string kosong
   const [activity, setActivity] = useState('')
   const [category, setCategory] = useState('Kuliah')
   const [customCategory, setCustomCategory] = useState('')
@@ -27,11 +26,14 @@ export default function JournalPage() {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return router.push('/')
 
+    // Ambil tanggal hari ini
+    const todayStr = new Date().toISOString().split('T')[0]
+
     const { data } = await supabase
       .from('daily_journals')
       .select('*')
       .eq('user_id', user.id)
-      .eq('journal_date', today)
+      .eq('journal_date', todayStr)
       .single()
 
     if (data) {
@@ -47,8 +49,12 @@ export default function JournalPage() {
   }
 
   useEffect(() => {
+    // Set tanggal setelah komponen dimuat (menghindari error build Vercel)
+    setDate(new Date().toISOString().split('T')[0])
+    
     checkTodayJournal()
-  }, [router, today])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -59,7 +65,7 @@ export default function JournalPage() {
 
     const payload = {
       user_id: user.id,
-      journal_date: today,
+      journal_date: date,
       activity_name: activity,
       category: finalCategory,
       location,
