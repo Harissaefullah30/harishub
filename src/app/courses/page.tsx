@@ -1,28 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Plus, BookOpen, Trash2, User } from 'lucide-react'
+import { ArrowLeft, Plus, BookOpen, Search, FolderOpen } from 'lucide-react'
 import Link from 'next/link'
 
-type Course = {
-  id: string
-  name: string
-  lecturer: string
-  semester: number
-}
-
-export default function CoursesPage() {
+function CoursesContent() {
   const router = useRouter()
-  const [courses, setCourses] = useState<Course[]>([])
+  const [courses, setCourses] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [isFormOpen, setIsFormOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   
-  // State Form
+  // State untuk form tambah MK
+  const [isFormOpen, setIsFormOpen] = useState(false)
   const [name, setName] = useState('')
   const [lecturer, setLecturer] = useState('')
-  const [semester, setSemester] = useState('1')
+  const [semester, setSemester] = useState('')
 
   const fetchCourses = async () => {
     setLoading(true)
@@ -33,7 +27,7 @@ export default function CoursesPage() {
       .from('courses')
       .select('*')
       .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
+      .order('semester', { ascending: true })
 
     if (data) setCourses(data)
     setLoading(false)
@@ -59,41 +53,50 @@ export default function CoursesPage() {
       setIsFormOpen(false)
       setName('')
       setLecturer('')
-      setSemester('1')
+      setSemester('')
       fetchCourses()
     } else {
       alert('Gagal: ' + error.message)
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Yakin ingin menghapus Mata Kuliah ini? Semua materi di dalamnya juga akan terhapus.')) return
-    await supabase.from('courses').delete().eq('id', id)
-    fetchCourses()
-  }
+  // LOGIKA PENCARIAN
+  const filteredCourses = courses.filter(course => 
+    course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (course.lecturer && course.lecturer.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
+
+  // LOGIKA MENGELOMPOKKAN BERDASARKAN SEMESTER
+  const groupedCourses = filteredCourses.reduce((acc, course) => {
+    const sem = course.semester || 1
+    if (!acc[sem]) acc[sem] = []
+    acc[sem].push(course)
+    return acc
+  }, {} as Record<number, any[]>)
+
+  // Urutkan semester
+  const sortedSemesters = Object.keys(groupedCourses).map(Number).sort((a, b) => a - b)
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] p-4 md:p-8">
       <div className="max-w-4xl mx-auto">
         
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
           <div className="flex items-center gap-3">
             <Link href="/dashboard" className="p-2 bg-white rounded-lg shadow-sm border border-gray-200 hover:bg-gray-50">
               <ArrowLeft size={20} className="text-[#1E3A5F]" />
             </Link>
             <h1 className="text-2xl font-bold text-[#1E3A5F]">Materi Kuliah</h1>
           </div>
-          <button onClick={() => setIsFormOpen(!isFormOpen)} className="flex items-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+          <button onClick={() => setIsFormOpen(!isFormOpen)} className="flex items-center justify-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
             <Plus size={16} /> Tambah MK
           </button>
         </div>
 
-        {/* Form Tambah MK */}
         {isFormOpen && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 animate-in fade-in slide-in-from-top-4">
             <h2 className="font-bold text-gray-800 mb-4">Tambah Mata Kuliah</h2>
-            <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Nama Mata Kuliah *</label>
                 <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Pemrograman Web" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white" />
@@ -103,10 +106,15 @@ export default function CoursesPage() {
                 <input type="text" value={lecturer} onChange={e => setLecturer(e.target.value)} placeholder="Budi Santoso" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Semester</label>
-                <input type="number" required value={semester} onChange={e => setSemester(e.target.value)} placeholder="5" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white" />
+                <label className="block text-xs font-medium text-gray-700 mb-1">Semester *</label>
+                <select required value={semester} onChange={e => setSemester(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-800">
+                  <option value="">Pilih Semester</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map(s => (
+                    <option key={s} value={s}>Semester {s}</option>
+                  ))}
+                </select>
               </div>
-              <div className="md:col-span-2 flex justify-end gap-2 mt-2">
+              <div className="md:col-span-3 flex justify-end gap-2 mt-2">
                 <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
                 <button type="submit" className="px-4 py-2 text-sm bg-[#4A90D9] hover:bg-blue-600 text-white rounded-lg">Simpan MK</button>
               </div>
@@ -114,7 +122,19 @@ export default function CoursesPage() {
           </div>
         )}
 
-        {/* List MK */}
+        {/* Kolom Pencarian */}
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center gap-3">
+          <Search size={18} className="text-gray-400" />
+          <input 
+            type="text" 
+            placeholder="Cari Mata Kuliah atau Dosen..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none w-full text-sm text-gray-700 placeholder-gray-400"
+          />
+        </div>
+
+        {/* Tampilan Folder Semester */}
         {loading ? (
           <p className="text-center text-gray-500">Memuat...</p>
         ) : courses.length === 0 ? (
@@ -124,23 +144,28 @@ export default function CoursesPage() {
             <p className="text-gray-500 text-sm">Klik "Tambah MK" untuk memulai.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {courses.map(mk => (
-              <div key={mk.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all group overflow-hidden flex flex-col justify-between">
-                <Link href={`/courses/${mk.id}`} className="p-5 flex-1 block">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="w-12 h-12 bg-blue-50 text-[#1E3A5F] rounded-xl flex items-center justify-center font-bold text-xl group-hover:bg-[#1E3A5F] group-hover:text-white transition-colors">
-                      {mk.name.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-1 rounded-md">Sem {mk.semester}</span>
+          <div className="space-y-6">
+            {sortedSemesters.map(sem => (
+              <div key={sem} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* Header Folder Semester */}
+                <div className="bg-[#1E3A5F] p-4 flex items-center justify-between cursor-pointer">
+                  <div className="flex items-center gap-3 text-white">
+                    <FolderOpen size={20} className="text-yellow-300" />
+                    <h2 className="font-bold text-lg">Semester {sem}</h2>
                   </div>
-                  <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight group-hover:text-[#4A90D9] transition-colors">{mk.name}</h3>
-                  <p className="text-sm text-gray-500 flex items-center gap-1.5"><User size={14} /> {mk.lecturer || 'Dosen belum diisi'}</p>
-                </Link>
-                <div className="px-5 py-3 border-t border-gray-50 flex justify-end bg-gray-50/50">
-                  <button onClick={() => handleDelete(mk.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1" title="Hapus Mata Kuliah">
-                    <Trash2 size={18} />
-                  </button>
+                  <span className="text-xs font-semibold bg-white/20 text-white px-3 py-1 rounded-full">
+                    {groupedCourses[sem].length} Mata Kuliah
+                  </span>
+                </div>
+
+                {/* Daftar MK di dalam Semester */}
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {groupedCourses[sem].map(mk => (
+                    <Link href={`/courses/${mk.id}`} key={mk.id} className="block p-4 rounded-xl border border-gray-100 hover:border-[#4A90D9] hover:bg-blue-50/30 transition-all group">
+                      <h3 className="font-bold text-gray-800 text-base mb-1 group-hover:text-[#1E3A5F] transition-colors">{mk.name}</h3>
+                      <p className="text-sm text-gray-500 flex items-center gap-1.5">{mk.lecturer || 'Dosen belum diisi'}</p>
+                    </Link>
+                  ))}
                 </div>
               </div>
             ))}
@@ -148,5 +173,13 @@ export default function CoursesPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-500">Memuat...</div>}>
+      <CoursesContent />
+    </Suspense>
   )
 }
