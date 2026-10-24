@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Plus, Trash2, Image as ImageIcon, Video, Download, Edit2 } from 'lucide-react'
@@ -14,7 +14,8 @@ type GalleryFile = {
   created_at: string
 }
 
-export default function FolderPage() {
+// 1. Kita pisahkan konten utama menjadi fungsi terpisah
+function FolderContent() {
   const params = useParams()
   const folderId = Array.isArray(params.id) ? params.id[0] : params.id
 
@@ -24,7 +25,7 @@ export default function FolderPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
   
   // State Form (Menggunakan Array of Files)
-  const [title, setTitle] = useState('') // Opsional, untuk awalan nama
+  const [title, setTitle] = useState('') 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
@@ -57,20 +58,17 @@ export default function FolderPage() {
 
     let successCount = 0
 
-    // Looping untuk mengunggah semua file yang dipilih
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i]
       const fileExt = file.name.split('.').pop()?.toLowerCase()
       const isVideo = ['mp4', 'mov', 'webm'].includes(fileExt || '')
       const fileName = `gallery-${user.id}-${Date.now()}-${i}.${fileExt}`
 
-      // Upload ke Storage
       const { error: uploadError } = await supabase.storage.from('materials').upload(fileName, file)
       
       if (!uploadError) {
         const { data: { publicUrl } } = supabase.storage.from('materials').getPublicUrl(fileName)
 
-        // Simpan ke Database
         await supabase.from('gallery_files').insert({
           folder_id: folderId,
           user_id: user.id,
@@ -81,7 +79,6 @@ export default function FolderPage() {
         successCount++
       }
       
-      // Update progress bar
       setUploadProgress(Math.round(((i + 1) / selectedFiles.length) * 100))
     }
 
@@ -133,7 +130,7 @@ export default function FolderPage() {
             <form onSubmit={handleUpload} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Awalan Judul (Opsional)</label>
-                <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Misal: Foto Seminar (nanti otomatis jadi Foto Seminar - 1, 2, dst)" className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-gray-800" />
+                <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="Misal: Foto Seminar (otomatis jadi Foto Seminar - 1, 2, dst)" className="w-full px-3 py-2 border rounded-lg text-sm bg-white text-gray-800" />
               </div>
               
               <div className="p-6 border-2 border-dashed border-[#4A90D9] rounded-xl bg-blue-50 text-center relative">
@@ -187,7 +184,6 @@ export default function FolderPage() {
                     <img src={f.file_url} alt={f.title} className="w-full h-full object-cover" loading="lazy" />
                   )}
                   
-                  {/* Overlay Aksi */}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
                     <a href={f.file_url} target="_blank" rel="noreferrer" className="p-2 bg-white rounded-full text-gray-800 hover:scale-110 transition-transform"><Download size={16} /></a>
                     <button onClick={() => handleDeleteFile(f.id, f.file_url)} className="p-2 bg-red-500 rounded-full text-white hover:scale-110 transition-transform"><Trash2 size={16} /></button>
@@ -212,5 +208,14 @@ export default function FolderPage() {
         )}
       </div>
     </div>
+  )
+}
+
+// 2. Ini adalah fungsi utama yang membungkus semuanya dengan Suspense
+export default function FolderPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F5F7FA] p-8 text-center text-gray-500">Memuat halaman galeri...</div>}>
+      <FolderContent />
+    </Suspense>
   )
 }
