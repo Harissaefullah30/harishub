@@ -2,19 +2,24 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Plus, Key, Lock, Globe, Eye, EyeOff, Trash2 } from 'lucide-react'
 import Link from 'next/link'
+// @ts-ignore
+import CryptoJS from 'crypto-js'
 
 // Tipe data untuk Akun
 type Account = {
   id: string
   app_name: string
   email_username: string
-  password: string
+  password: string // Di database ini tersimpan sebagai ciphertext
   category: string
   notes: string
 }
+
+// Kunci rahasia dari .env.local
+const SECRET_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || 'default-secret-key'
 
 export default function AccountsPage() {
   const router = useRouter()
@@ -29,14 +34,9 @@ export default function AccountsPage() {
   const [category, setCategory] = useState('Sosial')
   const [notes, setNotes] = useState('')
 
-  // State untuk melihat password
+  // State untuk melihat password (menyimpan ID akun yang sedang dibuka)
   const [visiblePasswords, setVisiblePasswords] = useState<{ [key: string]: boolean }>({})
 
-  useEffect(() => {
-    fetchAccounts()
-  }, [])
-
-  // Ambil data akun dari Supabase
   const fetchAccounts = async () => {
     setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
@@ -45,7 +45,7 @@ export default function AccountsPage() {
       return
     }
 
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('accounts')
       .select('*')
       .eq('user_id', user.id)
@@ -55,17 +55,23 @@ export default function AccountsPage() {
     setLoading(false)
   }
 
-  // Simpan akun baru
+  useEffect(() => {
+    fetchAccounts()
+  }, [router])
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
+    // ENKRIPSI PASSWORD SEBELUM DISIMPAN
+    const encryptedPassword = CryptoJS.AES.encrypt(password, SECRET_KEY).toString()
+
     const { error } = await supabase.from('accounts').insert({
       user_id: user.id,
       app_name: appName,
       email_username: emailUsername,
-      password: password,
+      password: encryptedPassword, // Yang disimpan adalah teks acak
       category: category,
       notes: notes
     })
@@ -76,23 +82,27 @@ export default function AccountsPage() {
       setEmailUsername('')
       setPassword('')
       setNotes('')
-      fetchAccounts() // Refresh data
+      fetchAccounts()
     } else {
       alert('Gagal menyimpan: ' + error.message)
     }
   }
 
-  // Fungsi untuk menghapus akun
   const handleDelete = async (id: string) => {
-    const confirmDelete = window.confirm('Yakin ingin menghapus akun ini? Data akan hilang permanen.')
-    if (!confirmDelete) return
-
+    if (!window.confirm('Yakin ingin menghapus akun ini? Data akan hilang permanen.')) return
     const { error } = await supabase.from('accounts').delete().eq('id', id)
-    
-    if (!error) {
-      fetchAccounts() // Refresh daftar akun setelah dihapus
-    } else {
-      alert('Gagal menghapus: ' + error.message)
+    if (!error) fetchAccounts()
+  }
+
+  // FUNGSI DEKRIPSI UNTUK DITAMPILKAN
+  const getDecryptedPassword = (ciphertext: string) => {
+    try {
+      const bytes = CryptoJS.AES.decrypt(ciphertext, SECRET_KEY)
+      const originalText = bytes.toString(CryptoJS.enc.Utf8)
+      // Jika hasil dekripsi kosong (berarti data lama belum terenkripsi), tampilkan teks aslinya
+      return originalText || ciphertext 
+    } catch (e) {
+      return ciphertext
     }
   }
 
@@ -116,78 +126,43 @@ export default function AccountsPage() {
           </button>
         </div>
 
-        {/* Form Tambah Akun (Muncul saat tombol diklik) */}
+        {/* Form Tambah Akun */}
         {isFormOpen && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 animate-in fade-in slide-in-from-top-4">
             <h2 className="font-bold text-gray-800 mb-4">Tambah Akun Baru</h2>
+            <div className="bg-blue-50 text-[#1E3A5F] text-xs p-3 rounded-lg mb-4 flex items-center gap-2">
+              <Lock size={14} /> Password yang kamu ketik akan dienkripsi secara otomatis sebelum disimpan.
+            </div>
             <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Nama Aplikasi</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={appName} 
-                  onChange={e => setAppName(e.target.value)} 
-                  placeholder="Instagram, Google, dll" 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm text-gray-800 bg-white" 
-                />
+                <input type="text" required value={appName} onChange={e => setAppName(e.target.value)} placeholder="Instagram, Google, dll" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm text-gray-800 bg-white" />
               </div>
-              
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Email / Username</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={emailUsername} 
-                  onChange={e => setEmailUsername(e.target.value)} 
-                  placeholder="haris@email.com" 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm text-gray-800 bg-white" 
-                />
+                <input type="text" required value={emailUsername} onChange={e => setEmailUsername(e.target.value)} placeholder="haris@email.com" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm text-gray-800 bg-white" />
               </div>
-              
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Password</label>
-                <input 
-                  type="text" 
-                  required 
-                  value={password} 
-                  onChange={e => setPassword(e.target.value)} 
-                  placeholder="Password akun" 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm text-gray-800 bg-white" 
-                />
+                <input type="text" required value={password} onChange={e => setPassword(e.target.value)} placeholder="Password akun" className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm text-gray-800 bg-white" />
               </div>
-              
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Kategori</label>
-                <select 
-                  value={category} 
-                  onChange={e => setCategory(e.target.value)} 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm bg-white text-gray-800"
-                >
+                <select value={category} onChange={e => setCategory(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm bg-white text-gray-800">
                   <option value="Sosial">Sosial</option>
                   <option value="Keuangan">Keuangan</option>
                   <option value="Kuliah">Kuliah</option>
                   <option value="Lainnya">Lainnya</option>
                 </select>
               </div>
-              
               <div className="md:col-span-2">
                 <label className="block text-xs font-medium text-gray-700 mb-1">Catatan (Opsional)</label>
-                <input 
-                  type="text" 
-                  value={notes} 
-                  onChange={e => setNotes(e.target.value)} 
-                  placeholder="Catatan tambahan..." 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm text-gray-800 bg-white" 
-                />
+                <input type="text" value={notes} onChange={e => setNotes(e.target.value)} placeholder="Catatan tambahan..." className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4A90D9] text-sm text-gray-800 bg-white" />
               </div>
-              
               <div className="md:col-span-2 flex justify-end gap-2 mt-2">
                 <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
                 <button type="submit" className="px-4 py-2 text-sm bg-[#4A90D9] hover:bg-blue-600 text-white rounded-lg font-medium">Simpan Akun</button>
               </div>
-
             </form>
           </div>
         )}
@@ -197,9 +172,7 @@ export default function AccountsPage() {
           <p className="text-center text-gray-500 py-10">Memuat data...</p>
         ) : accounts.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
-            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4">
-              <Lock size={24} className="text-gray-400" />
-            </div>
+            <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-4"><Lock size={24} className="text-gray-400" /></div>
             <h3 className="text-lg font-bold text-gray-700">Belum ada akun tersimpan</h3>
             <p className="text-gray-500 text-sm mt-1">Klik tombol "Tambah Akun" untuk mulai menyimpan.</p>
           </div>
@@ -216,17 +189,9 @@ export default function AccountsPage() {
                       <div>
                         <div className="flex justify-between items-start w-full">
                           <h3 className="font-bold text-gray-800 leading-tight">{acc.app_name}</h3>
-                          <button 
-                            onClick={() => handleDelete(acc.id)} 
-                            className="text-gray-400 hover:text-red-500 transition-colors p-1 ml-2"
-                            title="Hapus Akun"
-                          >
-                            <Trash2 size={16} />
-                          </button>
+                          <button onClick={() => handleDelete(acc.id)} className="text-gray-400 hover:text-red-500 transition-colors p-1 ml-2" title="Hapus Akun"><Trash2 size={16} /></button>
                         </div>
-                        <span className="text-[10px] font-semibold text-[#4A90D9] uppercase tracking-wide bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block">
-                          {acc.category}
-                        </span>
+                        <span className="text-[10px] font-semibold text-[#4A90D9] uppercase tracking-wide bg-blue-50 px-2 py-0.5 rounded-full mt-1 inline-block">{acc.category}</span>
                       </div>
                     </div>
                   </div>
@@ -239,7 +204,7 @@ export default function AccountsPage() {
                       <div className="flex items-center gap-2">
                         <Key size={14} className="text-gray-400" /> 
                         <span className="font-mono">
-                          {visiblePasswords[acc.id] ? acc.password : '••••••••'}
+                          {visiblePasswords[acc.id] ? getDecryptedPassword(acc.password) : '••••••••'}
                         </span>
                       </div>
                       <button 
@@ -252,11 +217,8 @@ export default function AccountsPage() {
                     </div>
                   </div>
                 </div>
-                
                 {acc.notes && (
-                  <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 italic">
-                    "{acc.notes}"
-                  </div>
+                  <div className="mt-4 pt-3 border-t border-gray-100 text-xs text-gray-500 italic">"{acc.notes}"</div>
                 )}
               </div>
             ))}
