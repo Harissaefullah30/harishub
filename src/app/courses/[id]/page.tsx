@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, Suspense } from 'react'
 import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Plus, Download, BookOpen, Trash2 } from 'lucide-react'
@@ -15,7 +15,8 @@ type Material = {
   created_at: string
 }
 
-export default function CourseDetailPage() {
+// 1. Kita buat komponen isi terpisah
+function CourseDetailContent() {
   const params = useParams()
   const courseId = Array.isArray(params.id) ? params.id[0] : params.id
 
@@ -200,7 +201,17 @@ export default function CourseDetailPage() {
             ))}
           </div>
         )}
+
       </div>
     </div>
+  )
+}
+
+// 2. Ini adalah fungsi utama yang membungkus semuanya dengan Suspense
+export default function CourseDetailPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F5F7FA] p-8 text-center text-gray-500">Memuat halaman...</div>}>
+      <CourseDetailContent />
+    </Suspense>
   )
 }
