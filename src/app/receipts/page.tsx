@@ -27,7 +27,7 @@ export default function ReceiptsPage() {
   // State Form
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('Kos / Kontrakan')
-  const [receiptDate, setReceiptDate] = useState(new Date().toISOString().split('T')[0])
+  const [receiptDate, setReceiptDate] = useState('')
   const [amount, setAmount] = useState('')
   const [issuer, setIssuer] = useState('')
   const [file, setFile] = useState<File | null>(null)
@@ -48,7 +48,10 @@ export default function ReceiptsPage() {
     setLoading(false)
   }
 
-  useEffect(() => {
+    useEffect(() => {
+    // Set tanggal setelah komponen dimuat
+    setReceiptDate(new Date().toISOString().split('T')[0])
+    
     fetchReceipts()
   }, [router])
 
