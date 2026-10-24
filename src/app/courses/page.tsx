@@ -6,9 +6,17 @@ import { supabase } from '@/lib/supabase'
 import { ArrowLeft, Plus, BookOpen, Search, FolderOpen } from 'lucide-react'
 import Link from 'next/link'
 
+// Tipe data untuk Mata Kuliah
+type Course = {
+  id: string
+  name: string
+  lecturer: string
+  semester: number
+}
+
 function CoursesContent() {
   const router = useRouter()
-  const [courses, setCourses] = useState<any[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   
@@ -67,12 +75,12 @@ function CoursesContent() {
   )
 
   // LOGIKA MENGELOMPOKKAN BERDASARKAN SEMESTER
-  const groupedCourses = filteredCourses.reduce((acc, course) => {
+  const groupedCourses = filteredCourses.reduce((acc: Record<number, Course[]>, course) => {
     const sem = course.semester || 1
     if (!acc[sem]) acc[sem] = []
     acc[sem].push(course)
     return acc
-  }, {} as Record<number, any[]>)
+  }, {})
 
   // Urutkan semester
   const sortedSemesters = Object.keys(groupedCourses).map(Number).sort((a, b) => a - b)
@@ -148,7 +156,7 @@ function CoursesContent() {
             {sortedSemesters.map(sem => (
               <div key={sem} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
                 {/* Header Folder Semester */}
-                <div className="bg-[#1E3A5F] p-4 flex items-center justify-between cursor-pointer">
+                <div className="bg-[#1E3A5F] p-4 flex items-center justify-between">
                   <div className="flex items-center gap-3 text-white">
                     <FolderOpen size={20} className="text-yellow-300" />
                     <h2 className="font-bold text-lg">Semester {sem}</h2>
@@ -160,7 +168,7 @@ function CoursesContent() {
 
                 {/* Daftar MK di dalam Semester */}
                 <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {groupedCourses[sem].map(mk => (
+                  {groupedCourses[sem].map((mk: Course) => (
                     <Link href={`/courses/${mk.id}`} key={mk.id} className="block p-4 rounded-xl border border-gray-100 hover:border-[#4A90D9] hover:bg-blue-50/30 transition-all group">
                       <h3 className="font-bold text-gray-800 text-base mb-1 group-hover:text-[#1E3A5F] transition-colors">{mk.name}</h3>
                       <p className="text-sm text-gray-500 flex items-center gap-1.5">{mk.lecturer || 'Dosen belum diisi'}</p>
