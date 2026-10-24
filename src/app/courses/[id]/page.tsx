@@ -1,110 +1,78 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Plus, Download, BookOpen, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Search, User, BookOpen } from 'lucide-react'
 import Link from 'next/link'
 
-type Material = {
+type Course = {
   id: string
-  title: string
-  type: string
-  content: string
-  file_url: string
-  created_at: string
+  name: string
+  lecturer: string
+  semester: number
 }
 
-// 1. Kita buat komponen isi terpisah
-function CourseDetailContent() {
+function SemesterContent() {
   const params = useParams()
-  const courseId = Array.isArray(params.id) ? params.id[0] : params.id
+  const router = useRouter()
+  const semesterId = parseInt(params.id as string)
 
-  const [courseName, setCourseName] = useState('')
-  const [materials, setMaterials] = useState<Material[]>([])
+  const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
   const [isFormOpen, setIsFormOpen] = useState(false)
+  
+  const [name, setName] = useState('')
+  const [lecturer, setLecturer] = useState('')
 
-  const [title, setTitle] = useState('')
-  const [type, setType] = useState('Teori')
-  const [content, setContent] = useState('')
-  const [file, setFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
-
-  const fetchCourseAndMaterials = async () => {
+  const fetchCourses = async () => {
     setLoading(true)
-    const { data: courseData } = await supabase.from('courses').select('name').eq('id', courseId).single()
-    if (courseData) setCourseName(courseData.name)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return router.push('/')
 
-    const { data: materialsData } = await supabase
-      .from('materials')
+    const { data } = await supabase
+      .from('courses')
       .select('*')
-      .eq('course_id', courseId)
-      .order('created_at', { ascending: false })
+      .eq('user_id', user.id)
+      .eq('semester', semesterId)
+      .order('name', { ascending: true })
 
-    if (materialsData) setMaterials(materialsData)
+    if (data) setCourses(data)
     setLoading(false)
   }
 
   useEffect(() => {
-    if (courseId) fetchCourseAndMaterials()
+    fetchCourses()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [courseId])
+  }, [semesterId])
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
-    setUploading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    let fileUrl = ''
-
-    if (file) {
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`
-      
-      const { error: uploadError } = await supabase.storage.from('materials').upload(fileName, file)
-
-      if (uploadError) {
-        alert('Gagal upload file: ' + uploadError.message)
-        setUploading(false)
-        return
-      }
-
-      const { data: { publicUrl } } = supabase.storage.from('materials').getPublicUrl(fileName)
-      fileUrl = publicUrl
-    }
-
-    const { error } = await supabase.from('materials').insert({
-      course_id: courseId,
+    const { error } = await supabase.from('courses').insert({
       user_id: user.id,
-      title,
-      type,
-      content,
-      file_url: fileUrl
+      name,
+      lecturer,
+      semester: semesterId
     })
 
     if (!error) {
       setIsFormOpen(false)
-      setTitle('')
-      setContent('')
-      setFile(null)
-      fetchCourseAndMaterials()
+      setName('')
+      setLecturer('')
+      fetchCourses()
     } else {
-      alert('Gagal menyimpan: ' + error.message)
+      alert('Gagal: ' + error.message)
     }
-    setUploading(false)
   }
 
-  const handleDeleteMaterial = async (id: string, fileUrl: string) => {
-    if (!window.confirm('Hapus materi ini?')) return
-    if (fileUrl) {
-      const fileName = fileUrl.split('/').pop()
-      if (fileName) await supabase.storage.from('materials').remove([fileName])
-    }
-    await supabase.from('materials').delete().eq('id', id)
-    fetchCourseAndMaterials()
-  }
+  const filteredCourses = courses.filter(course => 
+    course.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (course.lecturer && course.lecturer.toLowerCase().includes(searchQuery.toLowerCase()))
+  )
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] p-4 md:p-8">
@@ -116,102 +84,78 @@ function CourseDetailContent() {
               <ArrowLeft size={20} className="text-[#1E3A5F]" />
             </Link>
             <div>
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Mata Kuliah</p>
-              <h1 className="text-2xl font-bold text-[#1E3A5F]">{courseName || 'Memuat...'}</h1>
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Folder</p>
+              <h1 className="text-2xl font-bold text-[#1E3A5F]">Semester {semesterId}</h1>
             </div>
           </div>
-          <button onClick={() => setIsFormOpen(!isFormOpen)} className="flex items-center justify-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium">
-            <Plus size={16} /> Tambah Materi
+          <button onClick={() => setIsFormOpen(!isFormOpen)} className="flex items-center justify-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
+            <Plus size={16} /> Tambah MK
           </button>
         </div>
 
         {isFormOpen && (
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 animate-in fade-in">
-            <h2 className="font-bold text-gray-800 mb-4">Tambah Materi Baru</h2>
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Judul Materi *</label>
-                  <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Pertemuan 1 - Pengenalan" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-gray-700 mb-1">Tipe</label>
-                  <select value={type} onChange={e => setType(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white text-gray-800">
-                    <option value="Teori">Teori</option>
-                    <option value="Praktikum">Praktikum</option>
-                    <option value="Tugas">Tugas</option>
-                    <option value="Ujian">Ujian</option>
-                  </select>
-                </div>
-              </div>
-              
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 animate-in fade-in slide-in-from-top-4">
+            <h2 className="font-bold text-gray-800 mb-4">Tambah Mata Kuliah Baru</h2>
+            <form onSubmit={handleSave} className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Catatan (Opsional)</label>
-                <textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Tulis catatan di sini..." rows={3} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white"></textarea>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Nama Mata Kuliah *</label>
+                <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Pemrograman Web" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white" />
               </div>
-
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Upload File PDF/Gambar (Opsional)</label>
-                <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#1E3A5F] hover:file:bg-blue-100" />
+                <label className="block text-xs font-medium text-gray-700 mb-1">Nama Dosen (Opsional)</label>
+                <input type="text" value={lecturer} onChange={e => setLecturer(e.target.value)} placeholder="Budi Santoso" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white" />
               </div>
-
-              <div className="flex justify-end gap-2 mt-2">
+              <div className="md:col-span-2 flex justify-end gap-2 mt-2">
                 <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-                <button type="submit" disabled={uploading} className="px-4 py-2 text-sm bg-[#4A90D9] hover:bg-blue-600 text-white rounded-lg disabled:opacity-50">
-                  {uploading ? 'Menyimpan...' : 'Simpan Materi'}
-                </button>
+                <button type="submit" className="px-4 py-2 text-sm bg-[#4A90D9] hover:bg-blue-600 text-white rounded-lg">Simpan MK</button>
               </div>
             </form>
           </div>
         )}
 
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-6 flex items-center gap-3">
+          <Search size={18} className="text-gray-400" />
+          <input 
+            type="text" 
+            placeholder="Cari Mata Kuliah atau Dosen..." 
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            className="bg-transparent border-none outline-none w-full text-sm text-gray-700 placeholder-gray-400"
+          />
+        </div>
+
         {loading ? (
-          <p className="text-center text-gray-500">Memuat materi...</p>
-        ) : materials.length === 0 ? (
+          <p className="text-center text-gray-500">Memuat Mata Kuliah...</p>
+        ) : filteredCourses.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
             <BookOpen size={40} className="mx-auto text-gray-300 mb-3" />
-            <h3 className="text-lg font-bold text-gray-700">Belum ada materi</h3>
-            <p className="text-gray-500 text-sm">Klik "Tambah Materi" untuk mulai menyimpan catatan atau file.</p>
+            <h3 className="text-lg font-bold text-gray-700">Belum ada Mata Kuliah</h3>
+            <p className="text-gray-500 text-sm">Klik "Tambah MK" untuk memulai.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {materials.map(mat => (
-              <div key={mat.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${mat.type === 'Tugas' ? 'bg-red-50 text-red-600' : mat.type === 'Ujian' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-[#1E3A5F]'}`}>
-                      {mat.type}
-                    </span>
-                    <h3 className="font-bold text-gray-800 text-lg">{mat.title}</h3>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-gray-400 hidden md:block">{new Date(mat.created_at).toLocaleDateString('id-ID')}</span>
-                    <button onClick={() => handleDeleteMaterial(mat.id, mat.file_url)} className="text-gray-400 hover:text-red-500 transition-colors p-1 bg-gray-50 hover:bg-red-50 rounded-md">
-                      <Trash2 size={16} />
-                    </button>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filteredCourses.map(mk => (
+              <Link href={`/courses/${semesterId}/${mk.id}`} key={mk.id} className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md hover:border-[#4A90D9] transition-all block group">
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-12 h-12 bg-blue-50 text-[#1E3A5F] rounded-xl flex items-center justify-center font-bold text-xl group-hover:bg-[#1E3A5F] group-hover:text-white transition-colors">
+                    {mk.name.charAt(0).toUpperCase()}
                   </div>
                 </div>
-                {mat.content && <p className="text-sm text-gray-600 mt-2 whitespace-pre-wrap">{mat.content}</p>}
-                {mat.file_url && (
-                  <a href={mat.file_url} target="_blank" rel="noopener noreferrer" className="mt-4 inline-flex items-center gap-2 bg-gray-50 hover:bg-gray-100 border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium text-[#1E3A5F] transition-colors">
-                    <Download size={16} /> Download Lampiran
-                  </a>
-                )}
-              </div>
+                <h3 className="font-bold text-gray-800 text-lg mb-1 leading-tight group-hover:text-[#4A90D9] transition-colors">{mk.name}</h3>
+                <p className="text-sm text-gray-500 flex items-center gap-1.5"><User size={14} /> {mk.lecturer || 'Dosen belum diisi'}</p>
+              </Link>
             ))}
           </div>
         )}
-
       </div>
     </div>
   )
 }
 
-// 2. Ini adalah fungsi utama yang membungkus semuanya dengan Suspense
-export default function CourseDetailPage() {
+export default function SemesterPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F5F7FA] p-8 text-center text-gray-500">Memuat halaman...</div>}>
-      <CourseDetailContent />
+    <Suspense fallback={<div className="p-8 text-center text-gray-500">Memuat...</div>}>
+      <SemesterContent />
     </Suspense>
   )
 }
