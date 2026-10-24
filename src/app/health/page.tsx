@@ -24,7 +24,7 @@ export default function HealthPage() {
   const [isFormOpen, setIsFormOpen] = useState(false)
 
   // State Form
-  const [recordDate, setRecordDate] = useState(new Date().toISOString().split('T')[0])
+  const [recordDate, setRecordDate] = useState('')
   const [height, setHeight] = useState('')
   const [weight, setWeight] = useState('')
   const [bloodPressure, setBloodPressure] = useState('')
@@ -47,9 +47,11 @@ export default function HealthPage() {
   }
 
   useEffect(() => {
-    fetchData()
-  }, [router])
-
+  // Set tanggal hari ini setelah komponen dimuat
+  setRecordDate(new Date().toISOString().split('T')[0])
+  
+  fetchData()
+}, [router])
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     const { data: { user } } = await supabase.auth.getUser()
