@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState, Suspense } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
-import { ArrowLeft, Plus, Download, BookOpen, Trash2 } from 'lucide-react'
+import { ArrowLeft, Plus, Download, BookOpen, Trash2, Pencil, X, Save } from 'lucide-react'
 import Link from 'next/link'
 
 type Material = {
@@ -18,13 +18,14 @@ type Material = {
 function CourseDetailContent() {
   const params = useParams()
   const courseId = Array.isArray(params.id) ? params.id[0] : params.id
-  const router = useRouter()
 
   const [courseName, setCourseName] = useState('')
   const [materials, setMaterials] = useState<Material[]>([])
   const [loading, setLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
 
+  // State Form (Create & Edit)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [type, setType] = useState('Teori')
   const [content, setContent] = useState('')
@@ -51,14 +52,33 @@ function CourseDetailContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [courseId])
 
+  const openEditForm = (material: Material) => {
+    setEditingId(material.id)
+    setTitle(material.title)
+    setType(material.type)
+    setContent(material.content || '')
+    setFile(null) // Reset file
+    setIsFormOpen(true)
+  }
+
+  const closeForm = () => {
+    setIsFormOpen(false)
+    setEditingId(null)
+    setTitle('')
+    setType('Teori')
+    setContent('')
+    setFile(null)
+  }
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     setUploading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
-    let fileUrl = ''
+    let fileUrl = undefined // undefined = jangan ubah file lama
 
+    // Proses Upload File Baru (jika ada)
     if (file) {
       const fileExt = file.name.split('.').pop()
       const fileName = `${user.id}-${Date.now()}.${fileExt}`
@@ -75,23 +95,36 @@ function CourseDetailContent() {
       fileUrl = publicUrl
     }
 
-    const { error } = await supabase.from('materials').insert({
-      course_id: courseId,
-      user_id: user.id,
-      title,
-      type,
-      content,
-      file_url: fileUrl
-    })
+    if (editingId) {
+      // --- PROSES UPDATE ---
+      const updateData: any = { title, type, content }
+      if (fileUrl) updateData.file_url = fileUrl
 
-    if (!error) {
-      setIsFormOpen(false)
-      setTitle('')
-      setContent('')
-      setFile(null)
-      fetchCourseAndMaterials()
+      const { error } = await supabase.from('materials').update(updateData).eq('id', editingId)
+      
+      if (!error) {
+        closeForm()
+        fetchCourseAndMaterials()
+      } else {
+        alert('Gagal update: ' + error.message)
+      }
     } else {
-      alert('Gagal menyimpan: ' + error.message)
+      // --- PROSES CREATE ---
+      const { error } = await supabase.from('materials').insert({
+        course_id: courseId,
+        user_id: user.id,
+        title,
+        type,
+        content,
+        file_url: fileUrl || ''
+      })
+
+      if (!error) {
+        closeForm()
+        fetchCourseAndMaterials()
+      } else {
+        alert('Gagal menyimpan: ' + error.message)
+      }
     }
     setUploading(false)
   }
@@ -120,19 +153,22 @@ function CourseDetailContent() {
               <h1 className="text-2xl font-bold text-[#1E3A5F]">{courseName || 'Memuat...'}</h1>
             </div>
           </div>
-          <button onClick={() => setIsFormOpen(!isFormOpen)} className="flex items-center justify-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium">
+          <button onClick={() => { closeForm(); setIsFormOpen(!isFormOpen) }} className="flex items-center justify-center gap-2 bg-[#1E3A5F] hover:bg-[#2E5A8A] text-white px-4 py-2 rounded-lg text-sm font-medium">
             <Plus size={16} /> Tambah Materi
           </button>
         </div>
 
         {isFormOpen && (
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 animate-in fade-in">
-            <h2 className="font-bold text-gray-800 mb-4">Tambah Materi Baru</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-gray-800">{editingId ? 'Edit Materi' : 'Tambah Materi Baru'}</h2>
+              <button onClick={closeForm} className="text-gray-400 hover:text-red-500"><X size={20}/></button>
+            </div>
             <form onSubmit={handleSave} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Judul Materi *</label>
-                  <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Pertemuan 1 - Pengenalan" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white" />
+                  <input type="text" required value={title} onChange={e => setTitle(e.target.value)} placeholder="Pertemuan 1" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white" />
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">Tipe</label>
@@ -151,14 +187,16 @@ function CourseDetailContent() {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Upload File PDF/Gambar (Opsional)</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">
+                  Upload File PDF/Gambar {editingId && <span className="text-gray-400 font-normal">(Biarkan kosong jika tidak ingin ganti file)</span>}
+                </label>
                 <input type="file" onChange={e => setFile(e.target.files?.[0] || null)} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white file:mr-4 file:py-1 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-[#1E3A5F] hover:file:bg-blue-100" />
               </div>
 
               <div className="flex justify-end gap-2 mt-2">
-                <button type="button" onClick={() => setIsFormOpen(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
-                <button type="submit" disabled={uploading} className="px-4 py-2 text-sm bg-[#4A90D9] hover:bg-blue-600 text-white rounded-lg disabled:opacity-50">
-                  {uploading ? 'Menyimpan...' : 'Simpan Materi'}
+                <button type="button" onClick={closeForm} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg">Batal</button>
+                <button type="submit" disabled={uploading} className="px-4 py-2 text-sm bg-[#4A90D9] hover:bg-blue-600 text-white rounded-lg disabled:opacity-50 flex items-center gap-2">
+                  <Save size={16}/> {uploading ? 'Menyimpan...' : 'Simpan Materi'}
                 </button>
               </div>
             </form>
@@ -184,9 +222,12 @@ function CourseDetailContent() {
                     </span>
                     <h3 className="font-bold text-gray-800 text-lg">{mat.title}</h3>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
                     <span className="text-xs text-gray-400 hidden md:block">{new Date(mat.created_at).toLocaleDateString('id-ID')}</span>
-                    <button onClick={() => handleDeleteMaterial(mat.id, mat.file_url)} className="text-gray-400 hover:text-red-500 transition-colors p-1 bg-gray-50 hover:bg-red-50 rounded-md">
+                    <button onClick={() => openEditForm(mat)} className="text-gray-400 hover:text-blue-500 transition-colors p-1.5 bg-gray-50 hover:bg-blue-50 rounded-md" title="Edit">
+                      <Pencil size={16} />
+                    </button>
+                    <button onClick={() => handleDeleteMaterial(mat.id, mat.file_url)} className="text-gray-400 hover:text-red-500 transition-colors p-1.5 bg-gray-50 hover:bg-red-50 rounded-md" title="Hapus">
                       <Trash2 size={16} />
                     </button>
                   </div>

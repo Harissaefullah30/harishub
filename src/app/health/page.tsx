@@ -52,6 +52,7 @@ export default function HealthPage() {
   
   fetchData()
 }, [router])
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
     const { data: { user } } = await supabase.auth.getUser()
